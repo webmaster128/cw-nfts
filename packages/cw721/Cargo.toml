@@ -17,4 +17,5 @@ cosmwasm-schema = { workspace = true }
 cosmwasm-std    = { workspace = true }
 cw-utils        = { workspace = true }
 schemars        = { workspace = true }
+sylvia          = { workspace = true }
 serde           = { workspace = true }

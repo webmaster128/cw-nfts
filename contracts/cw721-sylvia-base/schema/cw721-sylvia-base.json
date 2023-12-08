@@ -1,0 +1,1616 @@
+{
+  "contract_name": "cw721-sylvia-base",
+  "contract_version": "0.18.0",
+  "idl_version": "1.0.0",
+  "instantiate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InstantiateMsg",
+    "type": "object",
+    "required": [
+      "data"
+    ],
+    "properties": {
+      "data": {
+        "$ref": "#/definitions/InstantiateMsgData"
+      }
+    },
+    "definitions": {
+      "InstantiateMsgData": {
+        "description": "The instantiation message data for this contract, used to set initial state",
+        "type": "object",
+        "required": [
+          "minter",
+          "name",
+          "symbol"
+        ],
+        "properties": {
+          "minter": {
+            "description": "The minter is the only one who can create new NFTs. This is designed for a base NFT that is controlled by an external program or contract. You will likely replace this with custom logic in custom NFTs",
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of the NFT contract",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Symbol of the NFT contract",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "execute": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ExecuteMsg",
+    "anyOf": [
+      {
+        "$ref": "#/definitions/Cw721InterfaceExecMsg"
+      },
+      {
+        "$ref": "#/definitions/ExecMsg"
+      }
+    ],
+    "definitions": {
+      "Action": {
+        "description": "Actions that can be taken to alter the contract's ownership",
+        "oneOf": [
+          {
+            "description": "Propose to transfer the contract's ownership to another account, optionally with an expiry time.\n\nCan only be called by the contract's current owner.\n\nAny existing pending ownership transfer is overwritten.",
+            "type": "object",
+            "required": [
+              "transfer_ownership"
+            ],
+            "properties": {
+              "transfer_ownership": {
+                "type": "object",
+                "required": [
+                  "new_owner"
+                ],
+                "properties": {
+                  "expiry": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/Expiration"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "new_owner": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Accept the pending ownership transfer.\n\nCan only be called by the pending owner.",
+            "type": "string",
+            "enum": [
+              "accept_ownership"
+            ]
+          },
+          {
+            "description": "Give up the contract's ownership and the possibility of appointing a new owner.\n\nCan only be invoked by the contract's current owner.\n\nAny existing pending ownership transfer is canceled.",
+            "type": "string",
+            "enum": [
+              "renounce_ownership"
+            ]
+          }
+        ]
+      },
+      "Binary": {
+        "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+        "type": "string"
+      },
+      "Cw721InterfaceExecMsg": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "transfer_nft"
+            ],
+            "properties": {
+              "transfer_nft": {
+                "type": "object",
+                "required": [
+                  "recipient",
+                  "token_id"
+                ],
+                "properties": {
+                  "recipient": {
+                    "type": "string"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "send_nft"
+            ],
+            "properties": {
+              "send_nft": {
+                "type": "object",
+                "required": [
+                  "contract",
+                  "msg",
+                  "token_id"
+                ],
+                "properties": {
+                  "contract": {
+                    "type": "string"
+                  },
+                  "msg": {
+                    "$ref": "#/definitions/Binary"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "approve"
+            ],
+            "properties": {
+              "approve": {
+                "type": "object",
+                "required": [
+                  "spender",
+                  "token_id"
+                ],
+                "properties": {
+                  "expires": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/Expiration"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "spender": {
+                    "type": "string"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "revoke"
+            ],
+            "properties": {
+              "revoke": {
+                "type": "object",
+                "required": [
+                  "spender",
+                  "token_id"
+                ],
+                "properties": {
+                  "spender": {
+                    "type": "string"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "approve_all"
+            ],
+            "properties": {
+              "approve_all": {
+                "type": "object",
+                "required": [
+                  "operator"
+                ],
+                "properties": {
+                  "expires": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/Expiration"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "revoke_all"
+            ],
+            "properties": {
+              "revoke_all": {
+                "type": "object",
+                "required": [
+                  "operator"
+                ],
+                "properties": {
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "burn"
+            ],
+            "properties": {
+              "burn": {
+                "type": "object",
+                "required": [
+                  "token_id"
+                ],
+                "properties": {
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "ExecMsg": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "mint"
+            ],
+            "properties": {
+              "mint": {
+                "type": "object",
+                "required": [
+                  "owner",
+                  "token_id"
+                ],
+                "properties": {
+                  "owner": {
+                    "type": "string"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  },
+                  "token_uri": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "update_ownership"
+            ],
+            "properties": {
+              "update_ownership": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "$ref": "#/definitions/Action"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Expiration": {
+        "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+        "oneOf": [
+          {
+            "description": "AtHeight will expire when `env.block.height` >= height",
+            "type": "object",
+            "required": [
+              "at_height"
+            ],
+            "properties": {
+              "at_height": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "AtTime will expire when `env.block.time` >= time",
+            "type": "object",
+            "required": [
+              "at_time"
+            ],
+            "properties": {
+              "at_time": {
+                "$ref": "#/definitions/Timestamp"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Never will never expire. Used to express the empty variant",
+            "type": "object",
+            "required": [
+              "never"
+            ],
+            "properties": {
+              "never": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Timestamp": {
+        "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+        "allOf": [
+          {
+            "$ref": "#/definitions/Uint64"
+          }
+        ]
+      },
+      "Uint64": {
+        "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+        "type": "string"
+      }
+    }
+  },
+  "query": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "QueryMsg",
+    "anyOf": [
+      {
+        "$ref": "#/definitions/Cw721InterfaceQueryMsg"
+      },
+      {
+        "$ref": "#/definitions/QueryMsg"
+      }
+    ],
+    "definitions": {
+      "Cw721InterfaceQueryMsg": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "contract_info"
+            ],
+            "properties": {
+              "contract_info": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "num_tokens"
+            ],
+            "properties": {
+              "num_tokens": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "nft_info"
+            ],
+            "properties": {
+              "nft_info": {
+                "type": "object",
+                "required": [
+                  "token_id"
+                ],
+                "properties": {
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "owner_of"
+            ],
+            "properties": {
+              "owner_of": {
+                "type": "object",
+                "required": [
+                  "include_expired",
+                  "token_id"
+                ],
+                "properties": {
+                  "include_expired": {
+                    "type": "boolean"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operator"
+            ],
+            "properties": {
+              "operator": {
+                "type": "object",
+                "required": [
+                  "include_expired",
+                  "operator",
+                  "owner"
+                ],
+                "properties": {
+                  "include_expired": {
+                    "type": "boolean"
+                  },
+                  "operator": {
+                    "type": "string"
+                  },
+                  "owner": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operators"
+            ],
+            "properties": {
+              "operators": {
+                "type": "object",
+                "required": [
+                  "include_expired",
+                  "owner"
+                ],
+                "properties": {
+                  "include_expired": {
+                    "type": "boolean"
+                  },
+                  "limit": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "uint32",
+                    "minimum": 0.0
+                  },
+                  "owner": {
+                    "type": "string"
+                  },
+                  "start_after": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "approval"
+            ],
+            "properties": {
+              "approval": {
+                "type": "object",
+                "required": [
+                  "include_expired",
+                  "spender",
+                  "token_id"
+                ],
+                "properties": {
+                  "include_expired": {
+                    "type": "boolean"
+                  },
+                  "spender": {
+                    "type": "string"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "approvals"
+            ],
+            "properties": {
+              "approvals": {
+                "type": "object",
+                "required": [
+                  "include_expired",
+                  "token_id"
+                ],
+                "properties": {
+                  "include_expired": {
+                    "type": "boolean"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "tokens"
+            ],
+            "properties": {
+              "tokens": {
+                "type": "object",
+                "required": [
+                  "owner"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "uint32",
+                    "minimum": 0.0
+                  },
+                  "owner": {
+                    "type": "string"
+                  },
+                  "start_after": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "all_tokens"
+            ],
+            "properties": {
+              "all_tokens": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "uint32",
+                    "minimum": 0.0
+                  },
+                  "start_after": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "all_nft_info"
+            ],
+            "properties": {
+              "all_nft_info": {
+                "type": "object",
+                "required": [
+                  "include_expired",
+                  "token_id"
+                ],
+                "properties": {
+                  "include_expired": {
+                    "type": "boolean"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "QueryMsg": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "minter"
+            ],
+            "properties": {
+              "minter": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "ownership"
+            ],
+            "properties": {
+              "ownership": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "migrate": null,
+  "sudo": null,
+  "responses": {
+    "all_nft_info": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AllNftInfoResponse_for_Empty",
+      "type": "object",
+      "required": [
+        "access",
+        "info"
+      ],
+      "properties": {
+        "access": {
+          "description": "Who can transfer the token",
+          "allOf": [
+            {
+              "$ref": "#/definitions/OwnerOfResponse"
+            }
+          ]
+        },
+        "info": {
+          "description": "Data on the token itself,",
+          "allOf": [
+            {
+              "$ref": "#/definitions/NftInfoResponse_for_Empty"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Approval": {
+          "type": "object",
+          "required": [
+            "expires",
+            "spender"
+          ],
+          "properties": {
+            "expires": {
+              "description": "When the Approval expires (maybe Expiration::never)",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Expiration"
+                }
+              ]
+            },
+            "spender": {
+              "description": "Account that can transfer/send the token",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Empty": {
+          "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
+          "type": "object"
+        },
+        "Expiration": {
+          "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+          "oneOf": [
+            {
+              "description": "AtHeight will expire when `env.block.height` >= height",
+              "type": "object",
+              "required": [
+                "at_height"
+              ],
+              "properties": {
+                "at_height": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "AtTime will expire when `env.block.time` >= time",
+              "type": "object",
+              "required": [
+                "at_time"
+              ],
+              "properties": {
+                "at_time": {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Never will never expire. Used to express the empty variant",
+              "type": "object",
+              "required": [
+                "never"
+              ],
+              "properties": {
+                "never": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "NftInfoResponse_for_Empty": {
+          "type": "object",
+          "required": [
+            "extension"
+          ],
+          "properties": {
+            "extension": {
+              "description": "You can add any custom metadata here when you extend cw721-base",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Empty"
+                }
+              ]
+            },
+            "token_uri": {
+              "description": "Universal resource identifier for this NFT Should point to a JSON file that conforms to the ERC721 Metadata JSON Schema",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "OwnerOfResponse": {
+          "type": "object",
+          "required": [
+            "approvals",
+            "owner"
+          ],
+          "properties": {
+            "approvals": {
+              "description": "If set this address is approved to transfer/send the token as well",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Approval"
+              }
+            },
+            "owner": {
+              "description": "Owner of the token",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "all_tokens": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TokensResponse",
+      "type": "object",
+      "required": [
+        "tokens"
+      ],
+      "properties": {
+        "tokens": {
+          "description": "Contains all token_ids in lexicographical ordering If there are more than `limit`, use `start_after` in future queries to achieve pagination.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "approval": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApprovalResponse",
+      "type": "object",
+      "required": [
+        "approval"
+      ],
+      "properties": {
+        "approval": {
+          "$ref": "#/definitions/Approval"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Approval": {
+          "type": "object",
+          "required": [
+            "expires",
+            "spender"
+          ],
+          "properties": {
+            "expires": {
+              "description": "When the Approval expires (maybe Expiration::never)",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Expiration"
+                }
+              ]
+            },
+            "spender": {
+              "description": "Account that can transfer/send the token",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Expiration": {
+          "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+          "oneOf": [
+            {
+              "description": "AtHeight will expire when `env.block.height` >= height",
+              "type": "object",
+              "required": [
+                "at_height"
+              ],
+              "properties": {
+                "at_height": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "AtTime will expire when `env.block.time` >= time",
+              "type": "object",
+              "required": [
+                "at_time"
+              ],
+              "properties": {
+                "at_time": {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Never will never expire. Used to express the empty variant",
+              "type": "object",
+              "required": [
+                "never"
+              ],
+              "properties": {
+                "never": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "approvals": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApprovalsResponse",
+      "type": "object",
+      "required": [
+        "approvals"
+      ],
+      "properties": {
+        "approvals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Approval"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Approval": {
+          "type": "object",
+          "required": [
+            "expires",
+            "spender"
+          ],
+          "properties": {
+            "expires": {
+              "description": "When the Approval expires (maybe Expiration::never)",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Expiration"
+                }
+              ]
+            },
+            "spender": {
+              "description": "Account that can transfer/send the token",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Expiration": {
+          "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+          "oneOf": [
+            {
+              "description": "AtHeight will expire when `env.block.height` >= height",
+              "type": "object",
+              "required": [
+                "at_height"
+              ],
+              "properties": {
+                "at_height": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "AtTime will expire when `env.block.time` >= time",
+              "type": "object",
+              "required": [
+                "at_time"
+              ],
+              "properties": {
+                "at_time": {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Never will never expire. Used to express the empty variant",
+              "type": "object",
+              "required": [
+                "never"
+              ],
+              "properties": {
+                "never": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "contract_info": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContractInfoResponse",
+      "type": "object",
+      "required": [
+        "name",
+        "symbol"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "minter": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MinterResponse",
+      "description": "Shows who can mint these tokens",
+      "type": "object",
+      "properties": {
+        "minter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "nft_info": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NftInfoResponse_for_Empty",
+      "type": "object",
+      "required": [
+        "extension"
+      ],
+      "properties": {
+        "extension": {
+          "description": "You can add any custom metadata here when you extend cw721-base",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Empty"
+            }
+          ]
+        },
+        "token_uri": {
+          "description": "Universal resource identifier for this NFT Should point to a JSON file that conforms to the ERC721 Metadata JSON Schema",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Empty": {
+          "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
+          "type": "object"
+        }
+      }
+    },
+    "num_tokens": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NumTokensResponse",
+      "type": "object",
+      "required": [
+        "count"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "operator": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OperatorResponse",
+      "type": "object",
+      "required": [
+        "approval"
+      ],
+      "properties": {
+        "approval": {
+          "$ref": "#/definitions/Approval"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Approval": {
+          "type": "object",
+          "required": [
+            "expires",
+            "spender"
+          ],
+          "properties": {
+            "expires": {
+              "description": "When the Approval expires (maybe Expiration::never)",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Expiration"
+                }
+              ]
+            },
+            "spender": {
+              "description": "Account that can transfer/send the token",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Expiration": {
+          "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+          "oneOf": [
+            {
+              "description": "AtHeight will expire when `env.block.height` >= height",
+              "type": "object",
+              "required": [
+                "at_height"
+              ],
+              "properties": {
+                "at_height": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "AtTime will expire when `env.block.time` >= time",
+              "type": "object",
+              "required": [
+                "at_time"
+              ],
+              "properties": {
+                "at_time": {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Never will never expire. Used to express the empty variant",
+              "type": "object",
+              "required": [
+                "never"
+              ],
+              "properties": {
+                "never": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "operators": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OperatorsResponse",
+      "type": "object",
+      "required": [
+        "operators"
+      ],
+      "properties": {
+        "operators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Approval"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Approval": {
+          "type": "object",
+          "required": [
+            "expires",
+            "spender"
+          ],
+          "properties": {
+            "expires": {
+              "description": "When the Approval expires (maybe Expiration::never)",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Expiration"
+                }
+              ]
+            },
+            "spender": {
+              "description": "Account that can transfer/send the token",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Expiration": {
+          "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+          "oneOf": [
+            {
+              "description": "AtHeight will expire when `env.block.height` >= height",
+              "type": "object",
+              "required": [
+                "at_height"
+              ],
+              "properties": {
+                "at_height": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "AtTime will expire when `env.block.time` >= time",
+              "type": "object",
+              "required": [
+                "at_time"
+              ],
+              "properties": {
+                "at_time": {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Never will never expire. Used to express the empty variant",
+              "type": "object",
+              "required": [
+                "never"
+              ],
+              "properties": {
+                "never": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "owner_of": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OwnerOfResponse",
+      "type": "object",
+      "required": [
+        "approvals",
+        "owner"
+      ],
+      "properties": {
+        "approvals": {
+          "description": "If set this address is approved to transfer/send the token as well",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Approval"
+          }
+        },
+        "owner": {
+          "description": "Owner of the token",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Approval": {
+          "type": "object",
+          "required": [
+            "expires",
+            "spender"
+          ],
+          "properties": {
+            "expires": {
+              "description": "When the Approval expires (maybe Expiration::never)",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Expiration"
+                }
+              ]
+            },
+            "spender": {
+              "description": "Account that can transfer/send the token",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Expiration": {
+          "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+          "oneOf": [
+            {
+              "description": "AtHeight will expire when `env.block.height` >= height",
+              "type": "object",
+              "required": [
+                "at_height"
+              ],
+              "properties": {
+                "at_height": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "AtTime will expire when `env.block.time` >= time",
+              "type": "object",
+              "required": [
+                "at_time"
+              ],
+              "properties": {
+                "at_time": {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Never will never expire. Used to express the empty variant",
+              "type": "object",
+              "required": [
+                "never"
+              ],
+              "properties": {
+                "never": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "ownership": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ownership_for_Addr",
+      "description": "The contract's ownership info",
+      "type": "object",
+      "properties": {
+        "owner": {
+          "description": "The contract's current owner. `None` if the ownership has been renounced.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pending_expiry": {
+          "description": "The deadline for the pending owner to accept the ownership. `None` if there isn't a pending ownership transfer, or if a transfer exists and it doesn't have a deadline.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Expiration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pending_owner": {
+          "description": "The account who has been proposed to take over the ownership. `None` if there isn't a pending ownership transfer.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        },
+        "Expiration": {
+          "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
+          "oneOf": [
+            {
+              "description": "AtHeight will expire when `env.block.height` >= height",
+              "type": "object",
+              "required": [
+                "at_height"
+              ],
+              "properties": {
+                "at_height": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "AtTime will expire when `env.block.time` >= time",
+              "type": "object",
+              "required": [
+                "at_time"
+              ],
+              "properties": {
+                "at_time": {
+                  "$ref": "#/definitions/Timestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "description": "Never will never expire. Used to express the empty variant",
+              "type": "object",
+              "required": [
+                "never"
+              ],
+              "properties": {
+                "never": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "Timestamp": {
+          "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint64"
+            }
+          ]
+        },
+        "Uint64": {
+          "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
+          "type": "string"
+        }
+      }
+    },
+    "tokens": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TokensResponse",
+      "type": "object",
+      "required": [
+        "tokens"
+      ],
+      "properties": {
+        "tokens": {
+          "description": "Contains all token_ids in lexicographical ordering If there are more than `limit`, use `start_after` in future queries to achieve pagination.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
