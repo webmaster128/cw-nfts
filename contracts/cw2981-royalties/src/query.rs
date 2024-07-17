@@ -21,7 +21,7 @@ pub fn query_royalties_info(
         },
         None => Decimal::percent(0),
     };
-    let royalty_from_sale_price = sale_price * royalty_percentage;
+    let royalty_from_sale_price = sale_price.mul_floor(royalty_percentage);
 
     let royalty_address = match token_info.extension {
         Some(ext) => match ext.royalty_payment_address {

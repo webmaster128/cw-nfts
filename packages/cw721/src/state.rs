@@ -27,14 +27,14 @@ pub struct Cw721Config<
     TMetadataExtensionMsg: CustomMsg,
 {
     /// Note: replaces deprecated/legacy key "nft_info"!
-    pub collection_info: Item<'a, CollectionInfo>,
-    pub token_count: Item<'a, u64>,
+    pub collection_info: Item<CollectionInfo>,
+    pub token_count: Item<u64>,
     /// Stored as (granter, operator) giving operator full control over granter's account.
     /// NOTE: granter is the owner, so operator has only control for NFTs owned by granter!
-    pub operators: Map<'a, (&'a Addr, &'a Addr), Expiration>,
+    pub operators: Map<(&'a Addr, &'a Addr), Expiration>,
     pub nft_info:
-        IndexedMap<'a, &'a str, NftInfo<TMetadataExtension>, TokenIndexes<'a, TMetadataExtension>>,
-    pub withdraw_address: Item<'a, String>,
+        IndexedMap< &'a str, NftInfo<TMetadataExtension>, TokenIndexes<'a, TMetadataExtension>>,
+    pub withdraw_address: Item<String>,
 
     pub(crate) _custom_response: PhantomData<TCustomResponseMessage>,
     pub(crate) _custom_execute: PhantomData<TMetadataExtensionMsg>,
@@ -65,22 +65,22 @@ where
     TMetadataExtensionMsg: CustomMsg,
 {
     fn new(
-        collection_info_key: &'a str,
-        token_count_key: &'a str,
-        operator_key: &'a str,
-        nft_info_key: &'a str,
-        nft_info_owner_key: &'a str,
-        withdraw_address_key: &'a str,
+        collection_info_key: &'static str,
+        token_count_key: &'static str,
+        operator_key: &'static str,
+        nft_info_key: &'static str,
+        nft_info_owner_key: &'static str,
+        withdraw_address_key: &'static str,
     ) -> Self {
         let indexes = TokenIndexes {
-            owner: MultiIndex::new(token_owner_idx, nft_info_key, nft_info_owner_key),
+            owner: MultiIndex::new(token_owner_idx, nft_info_key.clone(), nft_info_owner_key.clone()),
         };
         Self {
-            collection_info: Item::new(collection_info_key),
-            token_count: Item::new(token_count_key),
-            operators: Map::new(operator_key),
-            nft_info: IndexedMap::new(nft_info_key, indexes),
-            withdraw_address: Item::new(withdraw_address_key),
+            collection_info: Item::new(collection_info_key.clone()),
+            token_count: Item::new(token_count_key.clone()),
+            operators: Map::new(operator_key.clone()),
+            nft_info: IndexedMap::new(nft_info_key.clone(), indexes),
+            withdraw_address: Item::new(withdraw_address_key.clone()),
             _custom_response: PhantomData,
             _custom_execute: PhantomData,
         }

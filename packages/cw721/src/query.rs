@@ -253,7 +253,7 @@ pub trait Cw721Query<
             .load(deps.storage, &token_id)?;
 
         // token owner has absolute approval
-        if token.owner == spender {
+        if token.owner.to_string() == spender {
             let approval = Approval {
                 spender: token.owner,
                 expires: Expiration::Never {},
@@ -264,7 +264,7 @@ pub trait Cw721Query<
         let filtered: Vec<_> = token
             .approvals
             .into_iter()
-            .filter(|t| t.spender == spender)
+            .filter(|t| t.spender.to_string() == spender)
             .filter(|t| include_expired_approval || !t.is_expired(&env.block))
             .map(|a| Approval {
                 spender: a.spender,

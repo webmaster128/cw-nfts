@@ -65,7 +65,7 @@ fn cw721_base_latest_contract() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(execute, instantiate, query).with_migrate(migrate);
     Box::new(contract)
 }
-
+/* cw16 not supported
 fn cw721_base_016_contract() -> Box<dyn Contract<Empty>> {
     use cw721_base_016 as v16;
     let contract = ContractWrapper::new(
@@ -75,6 +75,8 @@ fn cw721_base_016_contract() -> Box<dyn Contract<Empty>> {
     );
     Box::new(contract)
 }
+
+ */
 
 fn cw721_base_017_contract() -> Box<dyn Contract<Empty>> {
     use cw721_base_017 as v17;
@@ -124,7 +126,7 @@ fn mint_transfer_and_burn(app: &mut App, cw721: Addr, sender: Addr, token_id: St
     .unwrap();
 
     let owner = query_owner(app.wrap(), &cw721, token_id.clone());
-    assert_eq!(owner, sender.to_string());
+    assert_eq!(owner.to_string(), sender.to_string());
 
     app.execute_contract(
         sender,
@@ -138,7 +140,7 @@ fn mint_transfer_and_burn(app: &mut App, cw721: Addr, sender: Addr, token_id: St
     .unwrap();
 
     let owner = query_owner(app.wrap(), &cw721, token_id.clone());
-    assert_eq!(owner, "burner".to_string());
+    assert_eq!(owner.to_string(), "burner".to_string());
 
     app.execute_contract(
         Addr::unchecked("burner"),
@@ -334,20 +336,20 @@ fn test_operator() {
 fn test_migration_legacy_to_latest() {
     // case 1: migrate from v0.16 to latest by using existing minter addr
     {
-        use cw721_base_016 as v16;
+        use cw721_base_017 as v17;
         let mut app = App::default();
         let admin = Addr::unchecked("admin");
 
-        let code_id_016 = app.store_code(cw721_base_016_contract());
+        let code_id_017 = app.store_code(cw721_base_017_contract());
         let code_id_latest = app.store_code(cw721_base_latest_contract());
 
         let legacy_creator_and_minter = Addr::unchecked("legacy_creator_and_minter");
 
         let cw721 = app
             .instantiate_contract(
-                code_id_016,
+                code_id_017,
                 legacy_creator_and_minter.clone(),
-                &v16::InstantiateMsg {
+                &v17::InstantiateMsg {
                     name: "collection".to_string(),
                     symbol: "symbol".to_string(),
                     minter: legacy_creator_and_minter.to_string(),
@@ -417,11 +419,11 @@ fn test_migration_legacy_to_latest() {
 
         // check that the new response is backwards compatable when minter
         // is not None.
-        let m: v16::MinterResponse = app
+        let m: v17::MinterResponse = app
             .wrap()
             .query_wasm_smart(&cw721, &Cw721QueryMsg::<Empty>::Minter {})
             .unwrap();
-        assert_eq!(m.minter, legacy_creator_and_minter.to_string());
+        assert_eq!(m.minter, Some(legacy_creator_and_minter.to_string()));
 
         // check minter ownership query works
         let minter_ownership: Ownership<Addr> = app
@@ -432,20 +434,20 @@ fn test_migration_legacy_to_latest() {
     }
     // case 2: migrate from v0.16 to latest by providing new creator and minter addr
     {
-        use cw721_base_016 as v16;
+        use cw721_base_017 as v17;
         let mut app = App::default();
         let admin = Addr::unchecked("admin");
 
-        let code_id_016 = app.store_code(cw721_base_016_contract());
+        let code_id_017 = app.store_code(cw721_base_017_contract());
         let code_id_latest = app.store_code(cw721_base_latest_contract());
 
         let legacy_creator_and_minter = Addr::unchecked("legacy_creator_and_minter");
 
         let cw721 = app
             .instantiate_contract(
-                code_id_016,
+                code_id_017,
                 legacy_creator_and_minter.clone(),
-                &v16::InstantiateMsg {
+                &v17::InstantiateMsg {
                     name: "collection".to_string(),
                     symbol: "symbol".to_string(),
                     minter: legacy_creator_and_minter.to_string(),
@@ -510,11 +512,11 @@ fn test_migration_legacy_to_latest() {
 
         // check that the new response is backwards compatable when minter
         // is not None.
-        let m: v16::MinterResponse = app
+        let m: v17::MinterResponse = app
             .wrap()
             .query_wasm_smart(&cw721, &Cw721QueryMsg::<Empty>::Minter {})
             .unwrap();
-        assert_eq!(m.minter, minter.to_string());
+        assert_eq!(m.minter,Some(minter.to_string()));
 
         // check minter ownership query works
         let minter_ownership: Ownership<Addr> = app

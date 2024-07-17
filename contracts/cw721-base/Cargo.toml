@@ -18,8 +18,6 @@ rust-version  = { workspace = true }
 crate-type = ["cdylib", "rlib"]
 
 [features]
-# for more explicit tests, cargo test --features=backtraces
-backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 
@@ -27,10 +25,14 @@ library = []
 cosmwasm-schema = { workspace = true }
 cosmwasm-std    = { workspace = true }
 cw-ownable      = { workspace = true }
+cw-storage-plus = { workspace = true }
+cw-utils        = { workspace = true }
 cw2             = { workspace = true }
 cw721           = { workspace = true }
 serde           = { workspace = true }
 
+
 [dev-dependencies]
+cw-multi-test   = { workspace = true }
 cw721-017       = { workspace = true }
 cw721-018       = { workspace = true }

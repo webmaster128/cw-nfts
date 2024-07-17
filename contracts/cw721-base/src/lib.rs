@@ -69,10 +69,9 @@ pub mod entry {
     }
 
     #[cfg_attr(not(feature = "library"), entry_point)]
-    pub fn migrate(
-        deps: DepsMut,
-        env: Env,
-        msg: Cw721MigrateMsg,
+    pub fn migrate(deps: DepsMut,
+                   env: Env,
+                   msg: Cw721MigrateMsg
     ) -> Result<Response, Cw721ContractError> {
         let contract = Cw721Contract::<DefaultOptionMetadataExtension, Empty, Empty>::default();
         contract.migrate(deps, env, msg, CONTRACT_NAME, CONTRACT_VERSION)

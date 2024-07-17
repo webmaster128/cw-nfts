@@ -1,8 +1,9 @@
+use std::fmt::Display;
 use cosmwasm_std::{
     Addr, Api, BankMsg, Binary, Coin, CustomMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response,
     StdResult, Storage,
 };
-use cw_ownable::{none_or, Action, Ownership, OwnershipError, OwnershipStore};
+use cw_ownable::{Action, Ownership, OwnershipError};
 use cw_storage_plus::Item;
 use cw_utils::Expiration;
 use serde::de::DeserializeOwned;
@@ -650,7 +651,9 @@ pub fn migrate_legacy_minter_and_creator(
     };
     Ok(response.add_attribute("creator_and_minter", none_or(creator_and_minter.as_ref())))
 }
-
+fn none_or<T: Display>(or: Option<&T>) -> String {
+    or.map_or_else(|| "none".to_string(), |or| or.to_string())
+}
 /// Migrates only in case collection_info is not present
 pub fn migrate_legacy_collection_info(
     storage: &mut dyn Storage,

@@ -1,8 +1,9 @@
 [workspace]
 members = ["packages/*", "contracts/*"]
+resolver = "2"
 
 [workspace.package]
-version       = "0.19.0"
+version       = "2.0.0"
 edition       = "2021"
 license       = "Apache-2.0"
 repository    = "https://github.com/CosmWasm/cw-nfts"
@@ -11,10 +12,10 @@ documentation = "https://docs.cosmwasm.com"
 rust-version  = "1.78"
 
 [workspace.dependencies]
-cosmwasm-schema = "^1.5"
-cosmwasm-std    = "^1.5"
-cw2             = "^1.1"
-cw20            = "^1.1"
+cosmwasm-schema = "^2.0"
+cosmwasm-std    = "^2.0"
+cw2             = "^2.0"
+cw20            = "^2.0"
 cw721           = { version = "*", path = "./packages/cw721" }
 cw721-016       = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.16.0", package = "cw721" } # needed for backwards compatibility and legacy migration
 cw721-017       = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.17.0", package = "cw721" } # needed for testing legacy migration
@@ -23,19 +24,16 @@ cw721-base      = { version = "*", path = "./contracts/cw721-base" }
 cw721-base-016  = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.16.0", package = "cw721-base" } # needed for testing legacy migration
 cw721-base-017  = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.17.0", package = "cw721-base" } # needed for testing legacy migration
 cw721-base-018  = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.18.0", package = "cw721-base" } # needed for testing legacy migration
-cw-multi-test   = "^0.20"
-cw-ownable      = { git = "https://github.com/public-awesome/cw-plus-plus.git", rev = "28c1a09bfc6b4f1942fefe3eb0b50faf9d3b1523"} # TODO: switch to official https://github.com/larry0x/cw-plus-plus once merged
-cw-storage-plus = "^1.1"
-cw-utils        = "^1.0"
+
+cw-multi-test   = "^2.0"
+cw-ownable      = { git = "https://github.com/larry0x/cw-plus-plus.git", rev = "718351d4e9d66edbf3b6dbea2d13b56ef732f51c"} # TODO: switch to official https://github.com/larry0x/cw-plus-plus once merged
+cw-storage-plus = "^2.0"
+cw-utils        = "^2.0"
 schemars        = "^0.8"
 serde           = { version = "1.0.152", default-features = false, features = ["derive"] }
 thiserror       = "^1.0"
 
 [profile.release.package.cw721-base]
-codegen-units = 1
-incremental   = false
-
-[profile.release.package.cw721-metadata-onchain]
 codegen-units = 1
 incremental   = false
 
@@ -47,9 +45,10 @@ incremental   = false
 codegen-units = 1
 incremental   = false
 
-[profile.release.package.cw721-receiver]
+[profile.release.package.cw721-receiver-tester]
 codegen-units = 1
 incremental   = false
+
 
 [profile.release]
 rpath            = false

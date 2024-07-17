@@ -17,13 +17,13 @@ pub struct Cw721ExpirationContract<
     // Message passed for updating metadata.
     TMetadataExtensionMsg,
 > where
-    TMetadataExtension: Serialize + DeserializeOwned + Clone,
-    TMetadataExtensionMsg: CustomMsg,
+TMetadataExtension: Serialize + DeserializeOwned + Clone,
+TMetadataExtensionMsg: CustomMsg,
 {
     pub expiration_days: Item<'a, u16>, // max 65535 days
     pub mint_timestamps: Map<'a, &'a str, Timestamp>,
     pub base_contract:
-        Cw721Contract<'a, TMetadataExtension, TCustomResponseMessage, TMetadataExtensionMsg>,
+        Cw721Contract<'a, TMetadataExtension,TCustomResponseMessage, TMetadataExtensionMsg>,
 }
 
 impl<TMetadataExtension, TCustomResponseMessage, TMetadataExtensionMsg> Default

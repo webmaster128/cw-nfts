@@ -24,8 +24,18 @@ pub struct Cw721Contract<
 impl<TMetadataExtension, TCustomResponseMessage, TMetadataExtensionMsg> Default
     for Cw721Contract<'static, TMetadataExtension, TCustomResponseMessage, TMetadataExtensionMsg>
 where
-    TMetadataExtension: Serialize + DeserializeOwned + Clone,
-    TMetadataExtensionMsg: CustomMsg,
+    T: Serialize + DeserializeOwned + Clone,
+    C: CustomMsg,
+    E: CustomMsg,
+    Q: CustomMsg,
+{
+}
+
+impl<T, C, E, Q> Default for Cw721Contract<'static, T, C, E, Q>
+where
+    T: Serialize + DeserializeOwned + Clone,
+    E: CustomMsg,
+    Q: CustomMsg,
 {
     fn default() -> Self {
         Self {

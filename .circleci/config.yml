@@ -267,7 +267,7 @@ jobs:
           # Uses --debug for compilation speed
           command: |
             source $HOME/.cargo/env
-            cargo install --debug --version 1.1.0 --locked cosmwasm-check
+            cargo install --debug --version 2.0.1 --locked cosmwasm-check
       - run:
           name: Check wasm contracts
           command: |
