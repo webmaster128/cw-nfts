@@ -49,14 +49,14 @@ pub struct Cw721Config<
     TNftExtension: Cw721State,
 {
     /// Note: replaces deprecated/legacy key "nft_info"!
-    pub collection_info: Item<'a, CollectionInfo>,
-    pub collection_extension: Map<'a, String, Attribute>,
-    pub token_count: Item<'a, u64>,
+    pub collection_info: Item<CollectionInfo>,
+    pub collection_extension: Map<String, Attribute>,
+    pub token_count: Item<u64>,
     /// Stored as (granter, operator) giving operator full control over granter's account.
     /// NOTE: granter is the owner, so operator has only control for NFTs owned by granter!
-    pub operators: Map<'a, (&'a Addr, &'a Addr), Expiration>,
-    pub nft_info: IndexedMap<'a, &'a str, NftInfo<TNftExtension>, TokenIndexes<'a, TNftExtension>>,
-    pub withdraw_address: Item<'a, String>,
+    pub operators: Map<(&'a Addr, &'a Addr), Expiration>,
+    pub nft_info: IndexedMap<&'a str, NftInfo<TNftExtension>, TokenIndexes<'a, TNftExtension>>,
+    pub withdraw_address: Item<String>,
 }
 
 impl<TNftExtension> Default for Cw721Config<'static, TNftExtension>
@@ -82,13 +82,13 @@ where
     TNftExtension: Cw721State,
 {
     fn new(
-        collection_info_key: &'a str,
-        collection_info_extension_key: &'a str,
-        token_count_key: &'a str,
-        operator_key: &'a str,
-        nft_info_key: &'a str,
-        nft_info_owner_key: &'a str,
-        withdraw_address_key: &'a str,
+        collection_info_key: &'static str,
+        collection_info_extension_key: &'static str,
+        token_count_key: &'static str,
+        operator_key: &'static str,
+        nft_info_key: &'static str,
+        nft_info_owner_key: &'static str,
+        withdraw_address_key: &'static str,
     ) -> Self {
         let indexes = TokenIndexes {
             owner: MultiIndex::new(token_owner_idx, nft_info_key, nft_info_owner_key),

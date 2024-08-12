@@ -16,7 +16,7 @@ use cw721::{
     DefaultOptionalCollectionExtension, DefaultOptionalCollectionExtensionMsg,
     DefaultOptionalNftExtensionMsg,
 };
-use cw_utils::parse_reply_instantiate_data;
+use cw_utils::parse_instantiate_response_data;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw721-fixed-price";
@@ -75,6 +75,7 @@ pub fn instantiate(
         id: INSTANTIATE_TOKEN_REPLY_ID,
         gas_limit: None,
         reply_on: ReplyOn::Success,
+        payload: Binary::new(vec![]),
     }];
 
     Ok(Response::new().add_submessages(sub_msg))
@@ -92,8 +93,9 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
     if msg.id != INSTANTIATE_TOKEN_REPLY_ID {
         return Err(ContractError::InvalidTokenReplyId {});
     }
-
-    let reply = parse_reply_instantiate_data(msg).unwrap();
+    let result = msg.result.into_result().unwrap();
+    let data = result.msg_responses.first().unwrap();
+    let reply = parse_instantiate_response_data(data.value.as_slice()).unwrap();
     config.cw721_address = Addr::unchecked(reply.contract_address).into();
     CONFIG.save(deps.storage, &config)?;
 
@@ -190,7 +192,7 @@ pub fn execute_receive(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MOCK_CONTRACT_ADDR};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env, MOCK_CONTRACT_ADDR};
     use cosmwasm_std::{from_json, to_json_binary, CosmosMsg, SubMsgResponse, SubMsgResult};
     use cw721::DefaultOptionalNftExtensionMsg;
     use prost::Message;
@@ -222,8 +224,8 @@ mod tests {
             extension: None,
             withdraw_address: None,
         };
-
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone()).unwrap();
 
         instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
@@ -250,6 +252,7 @@ mod tests {
                 id: INSTANTIATE_TOKEN_REPLY_ID,
                 gas_limit: None,
                 reply_on: ReplyOn::Success,
+                payload: Binary::new(vec![]),
             }]
         );
 
@@ -309,7 +312,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         let err = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {
@@ -335,7 +339,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         let err = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {
@@ -361,7 +366,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
             contract_address: NFT_CONTRACT_ADDR.to_string(),
@@ -387,8 +393,8 @@ mod tests {
             amount: Uint128::new(1),
             msg: [].into(),
         });
-
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
+        let contract = deps.api.addr_make(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
         let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         let mint_msg = Cw721ExecuteMsg::<
@@ -413,6 +419,7 @@ mod tests {
                 id: 0,
                 gas_limit: None,
                 reply_on: ReplyOn::Never,
+                payload: Binary::new(vec![])
             }
         );
     }
@@ -434,7 +441,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
             contract_address: NFT_CONTRACT_ADDR.to_string(),
@@ -477,7 +485,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
             contract_address: NFT_CONTRACT_ADDR.to_string(),
@@ -522,7 +531,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
             contract_address: NFT_CONTRACT_ADDR.to_string(),
@@ -548,7 +558,8 @@ mod tests {
             amount: Uint128::new(1),
             msg: [].into(),
         });
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
+        let contract = deps.api.addr_make(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
 
         // Max mint is 1, so second mint request should fail
         execute(deps.as_mut(), mock_env(), info.clone(), msg.clone()).unwrap();
@@ -578,8 +589,9 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
-        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let contract = deps.api.addr_make(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
+        instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Test token transfer when nft contract has not been linked
 
@@ -588,7 +600,6 @@ mod tests {
             amount: Uint128::new(1),
             msg: [].into(),
         });
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
 
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
         match err {
@@ -614,7 +625,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         // Link nft token contract using reply
@@ -644,7 +656,7 @@ mod tests {
             amount: Uint128::new(1),
             msg: [].into(),
         });
-        let info = mock_info("unauthorized-token", &[]);
+        let info = message_info(&deps.api.addr_make("unauthorized-token"), &[]);
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {
@@ -670,7 +682,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         // Link nft token contract using reply
@@ -700,7 +713,8 @@ mod tests {
             amount: Uint128::new(100),
             msg: [].into(),
         });
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
+        let contract = deps.api.addr_make(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {

@@ -723,7 +723,7 @@ pub trait Cw721Query<
         spender: String,
         include_expired_approval: bool,
     ) -> StdResult<ApprovalResponse> {
-        query_approval(deps, env, token_id, spender, include_expired_approval)
+        query_approval(deps, env, token_id, deps.api.addr_validate(&spender)?, include_expired_approval)
     }
 
     /// approvals returns all approvals owner given access to

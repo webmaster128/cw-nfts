@@ -132,7 +132,7 @@ mod tests {
 
     use cosmwasm_std::{from_json, Uint128};
 
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cw721::msg::Cw721InstantiateMsg;
     use cw721::traits::Cw721Query;
     use state::Cw2981Contract;
@@ -143,8 +143,8 @@ mod tests {
     fn use_metadata_extension() {
         let mut deps = mock_dependencies();
         let contract = Cw2981Contract::default();
-
-        let info = mock_info(CREATOR, &[]);
+        let creator = deps.api.addr_make(CREATOR);
+        let info = message_info(&creator, &[]);
         let init_msg = Cw721InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
@@ -164,7 +164,7 @@ mod tests {
         });
         let exec_msg = ExecuteMsg::Mint {
             token_id: token_id.to_string(),
-            owner: "john".to_string(),
+            owner: deps.api.addr_make("john").to_string(),
             token_uri: token_uri.clone(),
             extension: extension.clone(),
         };
@@ -182,8 +182,8 @@ mod tests {
     fn validate_royalty_information() {
         let mut deps = mock_dependencies();
         let _contract = Cw2981Contract::default();
-
-        let info = mock_info(CREATOR, &[]);
+        let creator = deps.api.addr_make(CREATOR);
+        let info = message_info(&creator, &[]);
         let init_msg = Cw721InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
@@ -215,8 +215,8 @@ mod tests {
     fn check_royalties_response() {
         let mut deps = mock_dependencies();
         let _contract = Cw2981Contract::default();
-
-        let info = mock_info(CREATOR, &[]);
+        let creator = deps.api.addr_make(CREATOR);
+        let info = message_info(&creator, &[]);
         let init_msg = Cw721InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
@@ -230,7 +230,7 @@ mod tests {
         let token_id = "Enterprise";
         let exec_msg = ExecuteMsg::Mint {
             token_id: token_id.to_string(),
-            owner: "john".to_string(),
+            owner: deps.api.addr_make("john").to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Some(MetadataWithRoyalty {
                 description: Some("Spaceship with Warp Drive".into()),
@@ -256,8 +256,8 @@ mod tests {
     #[test]
     fn check_token_royalties() {
         let mut deps = mock_dependencies();
-
-        let info = mock_info(CREATOR, &[]);
+        let creator = deps.api.addr_make(CREATOR);
+        let info = message_info(&creator, &[]);
         let init_msg = Cw721InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
@@ -270,15 +270,15 @@ mod tests {
         entry::instantiate(deps.as_mut(), env.clone(), info.clone(), init_msg).unwrap();
 
         let token_id = "Enterprise";
-        let owner = "jeanluc";
+        let owner = deps.api.addr_make("jeanluc");
         let exec_msg = ExecuteMsg::Mint {
             token_id: token_id.to_string(),
-            owner: owner.into(),
+            owner: owner.to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Some(MetadataWithRoyalty {
                 description: Some("Spaceship with Warp Drive".into()),
                 name: Some("Starship USS Enterprise".to_string()),
-                royalty_payment_address: Some("jeanluc".to_string()),
+                royalty_payment_address: Some(owner.to_string()),
                 royalty_percentage: Some(10),
                 ..MetadataWithRoyalty::default()
             }),
@@ -286,7 +286,7 @@ mod tests {
         entry::execute(deps.as_mut(), mock_env(), info.clone(), exec_msg).unwrap();
 
         let expected = RoyaltiesInfoResponse {
-            address: owner.into(),
+            address: owner.to_string(),
             royalty_amount: Uint128::new(10),
         };
         let res =
@@ -305,15 +305,15 @@ mod tests {
         // check for rounding down
         // which is the default behaviour
         let voyager_token_id = "Voyager";
-        let owner = "janeway";
+        let owner = deps.api.addr_make("janeway");
         let voyager_exec_msg = ExecuteMsg::Mint {
             token_id: voyager_token_id.to_string(),
-            owner: owner.into(),
+            owner: owner.to_string(),
             token_uri: Some("https://starships.example.com/Starship/Voyager.json".into()),
             extension: Some(MetadataWithRoyalty {
                 description: Some("Spaceship with Warp Drive".into()),
                 name: Some("Starship USS Voyager".to_string()),
-                royalty_payment_address: Some("janeway".to_string()),
+                royalty_payment_address: Some(owner.to_string()),
                 royalty_percentage: Some(4),
                 ..MetadataWithRoyalty::default()
             }),
@@ -323,7 +323,7 @@ mod tests {
         // 43 x 0.04 (i.e., 4%) should be 1.72
         // we expect this to be rounded down to 1
         let voyager_expected = RoyaltiesInfoResponse {
-            address: owner.into(),
+            address: owner.to_string(),
             royalty_amount: Uint128::new(1),
         };
 

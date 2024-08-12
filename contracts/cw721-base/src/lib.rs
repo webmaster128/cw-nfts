@@ -90,7 +90,7 @@ pub mod entry {
 mod tests {
     use super::*;
 
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cw721::traits::{Cw721Execute, Cw721Query};
     use extension::Cw721BaseExtensions;
     use msg::{ExecuteMsg, InstantiateMsg};
@@ -102,7 +102,8 @@ mod tests {
     fn use_empty_metadata_extension() {
         let mut deps = mock_dependencies();
         let contract = Cw721BaseExtensions::default();
-        let info = mock_info(CREATOR, &[]);
+        let creator = deps.api.addr_make(CREATOR);
+        let info = message_info(&creator, &[]);
         let init_msg = InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
@@ -118,9 +119,10 @@ mod tests {
         let token_id = "Enterprise";
         let token_uri = Some("https://starships.example.com/Starship/Enterprise.json".into());
         let extension = Some(Empty {});
+        let owner = deps.api.addr_make("john");
         let exec_msg = ExecuteMsg::Mint {
             token_id: token_id.to_string(),
-            owner: "john".to_string(),
+            owner: owner.to_string(),
             token_uri: token_uri.clone(),
             extension: extension.clone(),
         };

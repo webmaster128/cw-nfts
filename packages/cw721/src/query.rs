@@ -83,13 +83,11 @@ pub fn query_collection_extension_attributes(
     deps: Deps,
 ) -> StdResult<CollectionExtensionAttributes> {
     let config = Cw721Config::<Option<Empty>>::default();
-    cw_paginate_storage::paginate_map_values(
-        deps,
-        &config.collection_extension,
-        None,
-        None,
-        Order::Ascending,
-    )
+    config
+        .collection_extension
+        .range(deps.storage, None, None, Order::Ascending)
+        .map(|kv| Ok(kv?.1))
+        .collect()
 }
 
 pub fn query_collection_info_and_extension<TCollectionExtension>(
@@ -263,7 +261,7 @@ pub fn query_approval(
     deps: Deps,
     env: &Env,
     token_id: String,
-    spender: String,
+    spender: Addr,
     include_expired_approval: bool,
 ) -> StdResult<ApprovalResponse> {
     let token = Cw721Config::<Option<Empty>>::default()
