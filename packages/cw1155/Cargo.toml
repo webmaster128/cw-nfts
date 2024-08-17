@@ -1,0 +1,20 @@
+[package]
+name = "cw1155"
+version = "0.13.4"
+authors = [
+]
+edition = "2018"
+description = "Definition and types for the CosmWasm-1155 interface"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cw-nfts"
+homepage = "https://cosmwasm.com"
+documentation = "https://docs.cosmwasm.com"
+
+[dependencies]
+cw-utils = "0.13.4"
+cosmwasm-std = { version = "1.0.0" }
+schemars = "0.8.10"
+serde = { version = "1.0.140", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0" }

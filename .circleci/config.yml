@@ -3,11 +3,14 @@ workflows:
   version: 2
   test:
     jobs:
+      - contract_cw1155_base
+      - contract_cw1155_metadata_onchain
       - contract_cw721_base
       - contract_cw721_expiration
       - contract_cw721_fixed_price
       - contract_cw721_receiver_tester
       - package_cw721
+      - package_cw1155
       - lint
       - wasm-build
   deploy:
@@ -20,6 +23,78 @@ workflows:
               ignore: /.*/
 
 jobs:
+  contract_cw1155_base:
+    docker:
+      - image: rust:1.58.1
+    working_directory: ~/project/contracts/cw1155-base
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-cw1155-base-rust:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - run:
+          name: Ensure checked-in schemas are up-to-date
+          command: |
+            CHANGES_IN_REPO=$(git status --porcelain)
+            if [[ -n "$CHANGES_IN_REPO" ]]; then
+              echo "Repository is dirty. Showing 'git status' and 'git --no-pager diff' for debugging now:"
+              git status && git --no-pager diff
+              exit 1
+            fi
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-cw1155-base-rust:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+
+  contract_cw1155_metadata_onchain:
+    docker:
+      - image: rust:1.58.1
+    working_directory: ~/project/contracts/cw1155-metadata-onchain
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - restore_cache:
+          keys:
+            - cargocache-cw1155-metadata-onchain-rust:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Unit Tests
+          environment:
+            RUST_BACKTRACE: 1
+          command: cargo unit-test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - run:
+          name: Ensure checked-in schemas are up-to-date
+          command: |
+            CHANGES_IN_REPO=$(git status --porcelain)
+            if [[ -n "$CHANGES_IN_REPO" ]]; then
+              echo "Repository is dirty. Showing 'git status' and 'git --no-pager diff' for debugging now:"
+              git status && git --no-pager diff
+              exit 1
+            fi
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-cw1155-metadata-onchain-rust:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+
   contract_cw721_base:
     docker:
       - image: rust:1.78.0
@@ -188,6 +263,43 @@ jobs:
             - /usr/local/cargo/registry
             - target
           key: cargocache-v2-cw721:1.64.0-{{ checksum "~/project/Cargo.lock" }}
+
+  package_cw1155:
+    docker:
+      - image: rust:1.58.1
+    working_directory: ~/project/packages/cw1155
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version; rustup target list --installed
+      - restore_cache:
+          keys:
+            - cargocache-v2-cw1155:1.58.1-{{ checksum "~/project/Cargo.lock" }}
+      - run:
+          name: Build library for native target
+          command: cargo build --locked
+      - run:
+          name: Run unit tests
+          command: cargo test --locked
+      - run:
+          name: Build and run schema generator
+          command: cargo schema --locked
+      - run:
+          name: Ensure schemas are up-to-date
+          command: |
+            CHANGES_IN_REPO=$(git status --porcelain)
+            if [[ -n "$CHANGES_IN_REPO" ]]; then
+              echo "Repository is dirty. Showing 'git status' and 'git --no-pager diff' for debugging now:"
+              git status && git --no-pager diff
+              exit 1
+            fi
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - target
+          key: cargocache-v2-cw1155:1.58.1-{{ checksum "~/project/Cargo.lock" }}
 
   lint:
     docker:

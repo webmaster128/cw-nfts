@@ -1,0 +1,39 @@
+[package]
+name = "cw1155-base"
+version = "0.13.4"
+authors = [
+]
+edition = "2018"
+description = "Basic implementation cw1155"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cw-nfts"
+homepage = "https://cosmwasm.com"
+documentation = "https://docs.cosmwasm.com"
+
+exclude = [
+  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
+  "artifacts/*",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cw-utils = "0.13.4"
+cw2 = "0.13.4"
+cw1155 = { path = "../../packages/cw1155", version = "0.13.4" }
+cw-storage-plus = "0.13.4"
+cosmwasm-std = { version = "1.0.0" }
+schemars = "0.8.10"
+serde = { version = "1.0.140", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.31" }
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0" }
