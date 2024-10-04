@@ -1,0 +1,28 @@
+[package]
+name = "{{project-name}}"
+description   = "A custom cw721 NFT contract."
+version = "0.1.0"
+authors = ["{{authors}}"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cosmwasm-schema = "1.2.1"
+cosmwasm-std    = "1.2.1"
+cw2             = "1.0.1"
+cw20            = "1.0.1"
+cw721           = "0.17.0"
+cw721-base      = { version = "0.17.0", features = ["library"] }
+schemars        = "0.8.11"
+serde           = { version = "1.0.152", default-features = false, features = ["derive"] }
+thiserror       = "1.0.30"
