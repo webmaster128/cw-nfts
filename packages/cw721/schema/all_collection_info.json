@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Config",
+  "title": "AllCollectionInfo",
   "description": "This is a wrapper around CollectionInfo that includes the extension.",
   "type": "object",
   "required": [
@@ -129,9 +129,13 @@
       "properties": {
         "admin": {
           "description": "admin who can run migrations (if any)",
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "code_id": {
@@ -141,7 +145,11 @@
         },
         "creator": {
           "description": "address that instantiated this contract",
-          "type": "string"
+          "allOf": [
+            {
+              "$ref": "#/definitions/Addr"
+            }
+          ]
         },
         "ibc_port": {
           "description": "set if this contract has bound an IBC port",
@@ -154,7 +162,8 @@
           "description": "if set, the contract is pinned to the cache, and thus uses less gas when called",
           "type": "boolean"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Decimal": {
       "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",

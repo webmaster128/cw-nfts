@@ -27,6 +27,7 @@ pub type Extension = EmptyOptionalNftExtension;
 pub type Cw721BaseContract<'a> = Cw721BaseExtensions<'a>;
 
 pub mod entry {
+
     use super::*;
 
     #[cfg(not(feature = "library"))]
@@ -76,9 +77,10 @@ mod tests {
     use super::*;
 
     use cosmwasm_std::{
-        testing::{mock_dependencies, mock_env, mock_info},
+        testing::{message_info, mock_dependencies, mock_env},
         Empty,
     };
+
     use cw721::traits::{Cw721Execute, Cw721Query};
     use msg::{ExecuteMsg, InstantiateMsg};
 
@@ -88,8 +90,9 @@ mod tests {
     #[test]
     fn use_empty_metadata_extension() {
         let mut deps = mock_dependencies();
-        let contract = Cw721BaseContract::default();
-        let info = mock_info(CREATOR, &[]);
+        let contract = Cw721BaseExtensions::default();
+        let creator = deps.api.addr_make(CREATOR);
+        let info = message_info(&creator, &[]);
         let init_msg = InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
@@ -105,9 +108,10 @@ mod tests {
         let token_id = "Enterprise";
         let token_uri = Some("https://starships.example.com/Starship/Enterprise.json".into());
         let extension = Some(Empty {});
+        let owner = deps.api.addr_make("john");
         let exec_msg = ExecuteMsg::Mint {
             token_id: token_id.to_string(),
-            owner: "john".to_string(),
+            owner: owner.to_string(),
             token_uri: token_uri.clone(),
             extension: extension.clone(),
         };

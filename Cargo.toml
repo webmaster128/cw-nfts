@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = ["packages/*", "contracts/*"]
 
 [workspace.package]
@@ -11,12 +12,12 @@ documentation = "https://docs.cosmwasm.com"
 rust-version  = "1.78"
 
 [workspace.dependencies]
-anyhow = "^1.0"
-bech32 = "^0.11"
-cosmwasm-schema = "^1.5"
-cosmwasm-std    = "^1.5"
-cw2             = "^1.1"
-cw20            = "^1.1"
+cosmwasm-schema = "^2.1"
+cosmwasm-std    = "^2.1"
+cw2             = "^2.0"
+cw20            = "^2.0"
+anyhow          = "^1.0"
+bech32          = "^0.11"
 cw721           = { version = "*", path = "./packages/cw721" }
 cw721-016       = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.16.0", package = "cw721" } # needed for backwards compatibility and legacy migration
 cw721-base      = { version = "*", path = "./contracts/cw721-base" }
@@ -25,11 +26,12 @@ cw721-base-016  = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.16.0"
 cw721-metadata-onchain-016  = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.16.0", package = "cw721-metadata-onchain" } # needed for testing legacy migration
 cw721-base-017  = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.17.0", package = "cw721-base" } # needed for testing legacy migration
 cw721-base-018  = { git = "https://github.com/CosmWasm/cw-nfts", tag = "v0.18.0", package = "cw721-base" } # needed for testing legacy migration
-cw-multi-test   = { version = "^0.20", features = ["cosmwasm_1_2"] }
-cw-ownable      = { git = "https://github.com/public-awesome/cw-plus-plus.git", rev = "28c1a09bfc6b4f1942fefe3eb0b50faf9d3b1523"} # TODO: switch to official https://github.com/larry0x/cw-plus-plus once merged
-cw-paginate-storage = { version = "^2.4", git = "https://github.com/DA0-DA0/dao-contracts.git" }
-cw-storage-plus = "^1.1"
-cw-utils        = "^1.0"
+cw-multi-test   = { version = "^2.1", features = ["cosmwasm_2_0"] }
+# TODO: switch to official https://github.com/larry0x/cw-plus-plus
+# requires merge of https://github.com/larry0x/cw-plus-plus/pull/25
+cw-ownable      = { version = "^2.1" }
+cw-storage-plus = "^2.0"
+cw-utils        = "^2.0"
 schemars        = "^0.8"
 serde           = { version = "^1.0", default-features = false, features = ["derive"] }
 sha2 = "^0.10"

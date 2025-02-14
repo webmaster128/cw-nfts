@@ -631,7 +631,8 @@
           "denom": {
             "type": "string"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CollectionExtensionMsg_for_RoyaltyInfoResponse": {
         "description": "NOTE: In case `info` is not provided in `create()` or `validate()` (like for migration), creator/minter assertion is skipped.",
@@ -718,7 +719,8 @@
       },
       "Empty": {
         "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
-        "type": "object"
+        "type": "object",
+        "additionalProperties": false
       },
       "Expiration": {
         "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
@@ -999,7 +1001,7 @@
         "additionalProperties": false
       },
       {
-        "description": "Returns `ConfigResponse`",
+        "description": "Returns `AllCollectionInfoResponse`",
         "type": "object",
         "required": [
           "get_config"
@@ -1201,7 +1203,7 @@
         "additionalProperties": false
       },
       {
-        "description": "Returns all tokens owned by the given address. Same as `AllTokens` but with owner filter.",
+        "description": "With Enumerable extension. Returns all tokens owned by the given address, [] if unset.",
         "type": "object",
         "required": [
           "tokens"
@@ -1386,7 +1388,8 @@
       },
       "Empty": {
         "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
-        "type": "object"
+        "type": "object",
+        "additionalProperties": false
       },
       "RoyaltyInfo": {
         "type": "object",
@@ -1513,7 +1516,8 @@
         },
         "Empty": {
           "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false
         },
         "Expiration": {
           "description": "Expiration represents a point in time when some event happens. It can compare with a BlockInfo and will return is_expired() == true once the condition is hit (and for every block in the future)",
@@ -2116,6 +2120,10 @@
       },
       "additionalProperties": false,
       "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        },
         "Attribute": {
           "type": "object",
           "required": [
@@ -2166,9 +2174,13 @@
           "properties": {
             "admin": {
               "description": "admin who can run migrations (if any)",
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "code_id": {
@@ -2178,7 +2190,11 @@
             },
             "creator": {
               "description": "address that instantiated this contract",
-              "type": "string"
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                }
+              ]
             },
             "ibc_port": {
               "description": "set if this contract has bound an IBC port",
@@ -2191,7 +2207,8 @@
               "description": "if set, the contract is pinned to the cache, and thus uses less gas when called",
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "Timestamp": {
           "description": "A point in time in nanosecond precision.\n\nThis type can represent times from 1970-01-01T00:00:00Z to 2554-07-21T23:34:33Z.\n\n## Examples\n\n``` # use cosmwasm_std::Timestamp; let ts = Timestamp::from_nanos(1_000_000_202); assert_eq!(ts.nanos(), 1_000_000_202); assert_eq!(ts.seconds(), 1); assert_eq!(ts.subsec_nanos(), 202);\n\nlet ts = ts.plus_seconds(2); assert_eq!(ts.nanos(), 3_000_000_202); assert_eq!(ts.seconds(), 3); assert_eq!(ts.subsec_nanos(), 202); ```",
@@ -2492,9 +2509,13 @@
           "properties": {
             "admin": {
               "description": "admin who can run migrations (if any)",
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "code_id": {
@@ -2504,7 +2525,11 @@
             },
             "creator": {
               "description": "address that instantiated this contract",
-              "type": "string"
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                }
+              ]
             },
             "ibc_port": {
               "description": "set if this contract has bound an IBC port",
@@ -2517,7 +2542,8 @@
               "description": "if set, the contract is pinned to the cache, and thus uses less gas when called",
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
@@ -2868,7 +2894,8 @@
       "definitions": {
         "Empty": {
           "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false
         },
         "NftInfoResponse_for_Nullable_Empty": {
           "type": "object",
@@ -2947,7 +2974,8 @@
       "definitions": {
         "Empty": {
           "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false
         }
       }
     },

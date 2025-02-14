@@ -71,7 +71,7 @@ fn main() {
     export_schema_with_title(
         &schema_for!(ConfigResponse<DefaultOptionalCollectionExtension>),
         &out_dir,
-        "Config",
+        "AllCollectionInfo",
     );
     export_schema(&schema_for!(OwnerOfResponse), &out_dir);
     export_schema(&schema_for!(MinterResponse), &out_dir);

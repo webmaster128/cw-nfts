@@ -19,7 +19,6 @@ doctest      = false # disable doc tests
 cosmwasm-schema = { workspace = true }
 cosmwasm-std    = { workspace = true }
 cw-ownable      = { workspace = true }
-cw-paginate-storage  = { workspace = true }
 cw-storage-plus = { workspace = true }
 cw-utils        = { workspace = true }
 cw2             = { workspace = true }

@@ -16,7 +16,7 @@ use cw721::{
     DefaultOptionalCollectionExtension, DefaultOptionalCollectionExtensionMsg,
     DefaultOptionalNftExtensionMsg,
 };
-use cw_utils::parse_reply_instantiate_data;
+use cw_utils::parse_instantiate_response_data;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw721-fixed-price";
@@ -75,6 +75,7 @@ pub fn instantiate(
         id: INSTANTIATE_TOKEN_REPLY_ID,
         gas_limit: None,
         reply_on: ReplyOn::Success,
+        payload: Binary::new(vec![]),
     }];
 
     Ok(Response::new().add_submessages(sub_msg))
@@ -92,8 +93,9 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
     if msg.id != INSTANTIATE_TOKEN_REPLY_ID {
         return Err(ContractError::InvalidTokenReplyId {});
     }
-
-    let reply = parse_reply_instantiate_data(msg).unwrap();
+    let result = msg.result.into_result().unwrap();
+    let data = result.msg_responses.first().unwrap();
+    let reply = parse_instantiate_response_data(data.value.as_slice()).unwrap();
     config.cw721_address = Addr::unchecked(reply.contract_address).into();
     CONFIG.save(deps.storage, &config)?;
 
@@ -190,8 +192,12 @@ pub fn execute_receive(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MOCK_CONTRACT_ADDR};
-    use cosmwasm_std::{from_json, to_json_binary, CosmosMsg, SubMsgResponse, SubMsgResult};
+    use cosmwasm_std::testing::{
+        message_info, mock_dependencies, mock_env, MockApi, MOCK_CONTRACT_ADDR,
+    };
+    use cosmwasm_std::{
+        from_json, to_json_binary, CosmosMsg, MsgResponse, SubMsgResponse, SubMsgResult,
+    };
     use cw721::DefaultOptionalNftExtensionMsg;
     use prost::Message;
 
@@ -206,24 +212,46 @@ mod tests {
         pub data: ::prost::alloc::vec::Vec<u8>,
     }
 
+    pub struct MockAddrFactory<'a> {
+        api: MockApi,
+        addrs: std::collections::BTreeMap<&'a str, Addr>,
+    }
+
+    impl<'a> MockAddrFactory<'a> {
+        pub fn new(api: MockApi) -> Self {
+            Self {
+                api,
+                addrs: std::collections::BTreeMap::new(),
+            }
+        }
+
+        pub fn addr(&mut self, name: &'a str) -> Addr {
+            self.addrs
+                .entry(name)
+                .or_insert(self.api.addr_make(name))
+                .clone()
+        }
+    }
+
     #[test]
     fn initialization() {
         let mut deps = mock_dependencies();
+        let mut addrs = MockAddrFactory::new(deps.api);
         let msg = InstantiateMsg {
-            owner: Addr::unchecked("owner"),
+            owner: addrs.addr("owner"),
             max_tokens: 1,
             unit_price: Uint128::new(1),
             name: String::from("SYNTH"),
             symbol: String::from("SYNTH"),
             collection_info_extension: None,
             token_code_id: 10u64,
-            cw20_address: Addr::unchecked(MOCK_CONTRACT_ADDR),
+            cw20_address: addrs.addr(MOCK_CONTRACT_ADDR),
             token_uri: String::from("https://ipfs.io/ipfs/Q"),
             extension: None,
             withdraw_address: None,
         };
-
-        let info = mock_info("owner", &[]);
+        let owner = addrs.addr("owner");
+        let info = message_info(&owner, &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone()).unwrap();
 
         instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
@@ -250,11 +278,12 @@ mod tests {
                 id: INSTANTIATE_TOKEN_REPLY_ID,
                 gas_limit: None,
                 reply_on: ReplyOn::Success,
+                payload: Binary::new(vec![]),
             }]
         );
 
         let instantiate_reply = MsgInstantiateContractResponse {
-            contract_address: "nftcontract".to_string(),
+            contract_address: addrs.addr("nftcontract").to_string(),
             data: vec![2u8; 32769],
         };
         let mut encoded_instantiate_reply =
@@ -265,9 +294,16 @@ mod tests {
 
         let reply_msg = Reply {
             id: INSTANTIATE_TOKEN_REPLY_ID,
+            payload: Binary::default(),
+            gas_used: 1000,
+            #[allow(deprecated)]
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
-                data: Some(encoded_instantiate_reply.into()),
+                data: Some(encoded_instantiate_reply.clone().into()),
+                msg_responses: vec![MsgResponse {
+                    type_url: "/cosmwasm.wasm.v1.MsgInstantiateContractResponse".to_string(),
+                    value: encoded_instantiate_reply.clone().into(),
+                }],
             }),
         };
         reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
@@ -278,9 +314,9 @@ mod tests {
         assert_eq!(
             config,
             Config {
-                owner: Addr::unchecked("owner"),
+                owner: addrs.addr("owner"),
                 cw20_address: msg.cw20_address,
-                cw721_address: Some(Addr::unchecked(NFT_CONTRACT_ADDR)),
+                cw721_address: Some(addrs.addr(NFT_CONTRACT_ADDR)),
                 max_tokens: msg.max_tokens,
                 unit_price: msg.unit_price,
                 name: msg.name,
@@ -309,7 +345,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         let err = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {
@@ -335,7 +372,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         let err = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {
@@ -347,24 +385,26 @@ mod tests {
     #[test]
     fn mint() {
         let mut deps = mock_dependencies();
+        let mut addrs = MockAddrFactory::new(deps.api);
         let msg = InstantiateMsg {
-            owner: Addr::unchecked("owner"),
+            owner: addrs.addr("owner"),
             max_tokens: 1,
             unit_price: Uint128::new(1),
             name: String::from("SYNTH"),
             symbol: String::from("SYNTH"),
             collection_info_extension: None,
             token_code_id: 10u64,
-            cw20_address: Addr::unchecked(MOCK_CONTRACT_ADDR),
+            cw20_address: addrs.addr(MOCK_CONTRACT_ADDR),
             token_uri: String::from("https://ipfs.io/ipfs/Q"),
             extension: None,
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = addrs.addr("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
-            contract_address: NFT_CONTRACT_ADDR.to_string(),
+            contract_address: addrs.addr(NFT_CONTRACT_ADDR).to_string(),
             data: vec![2u8; 32769],
         };
         let mut encoded_instantiate_reply =
@@ -375,20 +415,27 @@ mod tests {
 
         let reply_msg = Reply {
             id: INSTANTIATE_TOKEN_REPLY_ID,
+            payload: Binary::default(),
+            gas_used: 1000,
+            #[allow(deprecated)]
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
-                data: Some(encoded_instantiate_reply.into()),
+                data: Some(encoded_instantiate_reply.clone().into()),
+                msg_responses: vec![MsgResponse {
+                    type_url: "/cosmwasm.wasm.v1.MsgInstantiateContractResponse".to_string(),
+                    value: encoded_instantiate_reply.clone().into(),
+                }],
             }),
         };
         reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
 
         let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
-            sender: String::from("minter"),
+            sender: addrs.addr("minter").to_string(),
             amount: Uint128::new(1),
             msg: [].into(),
         });
-
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
+        let contract = addrs.addr(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
         let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         let mint_msg = Cw721ExecuteMsg::<
@@ -397,7 +444,7 @@ mod tests {
             Empty,
         >::Mint {
             token_id: String::from("0"),
-            owner: String::from("minter"),
+            owner: addrs.addr("minter").to_string(),
             token_uri: Some(String::from("https://ipfs.io/ipfs/Q")),
             extension: None,
         };
@@ -406,13 +453,14 @@ mod tests {
             res.messages[0],
             SubMsg {
                 msg: CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: NFT_CONTRACT_ADDR.to_string(),
+                    contract_addr: addrs.addr(NFT_CONTRACT_ADDR).to_string(),
                     msg: to_json_binary(&mint_msg).unwrap(),
                     funds: vec![],
                 }),
                 id: 0,
                 gas_limit: None,
                 reply_on: ReplyOn::Never,
+                payload: Binary::new(vec![])
             }
         );
     }
@@ -434,7 +482,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
             contract_address: NFT_CONTRACT_ADDR.to_string(),
@@ -448,9 +497,16 @@ mod tests {
 
         let reply_msg = Reply {
             id: 10,
+            payload: Binary::default(),
+            gas_used: 1000,
+            #[allow(deprecated)]
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
-                data: Some(encoded_instantiate_reply.into()),
+                data: Some(encoded_instantiate_reply.clone().into()),
+                msg_responses: vec![MsgResponse {
+                    type_url: "/cosmwasm.wasm.v1.MsgInstantiateContractResponse".to_string(),
+                    value: encoded_instantiate_reply.clone().into(),
+                }],
             }),
         };
         let err = reply(deps.as_mut(), mock_env(), reply_msg).unwrap_err();
@@ -477,7 +533,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
             contract_address: NFT_CONTRACT_ADDR.to_string(),
@@ -491,9 +548,16 @@ mod tests {
 
         let reply_msg = Reply {
             id: 1,
+            payload: Binary::default(),
+            gas_used: 1000,
+            #[allow(deprecated)]
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
-                data: Some(encoded_instantiate_reply.into()),
+                data: Some(encoded_instantiate_reply.clone().into()),
+                msg_responses: vec![MsgResponse {
+                    type_url: "/cosmwasm.wasm.v1.MsgInstantiateContractResponse".to_string(),
+                    value: encoded_instantiate_reply.clone().into(),
+                }],
             }),
         };
         reply(deps.as_mut(), mock_env(), reply_msg.clone()).unwrap();
@@ -508,21 +572,23 @@ mod tests {
     #[test]
     fn sold_out() {
         let mut deps = mock_dependencies();
+        let mut addrs = MockAddrFactory::new(deps.api);
         let msg = InstantiateMsg {
-            owner: Addr::unchecked("owner"),
+            owner: addrs.addr("owner"),
             max_tokens: 1,
             unit_price: Uint128::new(1),
             name: String::from("SYNTH"),
             symbol: String::from("SYNTH"),
             collection_info_extension: None,
             token_code_id: 10u64,
-            cw20_address: Addr::unchecked(MOCK_CONTRACT_ADDR),
+            cw20_address: addrs.addr(MOCK_CONTRACT_ADDR),
             token_uri: String::from("https://ipfs.io/ipfs/Q"),
             extension: None,
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = addrs.addr("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         let instantiate_reply = MsgInstantiateContractResponse {
             contract_address: NFT_CONTRACT_ADDR.to_string(),
@@ -536,19 +602,27 @@ mod tests {
 
         let reply_msg = Reply {
             id: INSTANTIATE_TOKEN_REPLY_ID,
+            payload: Binary::default(),
+            gas_used: 1000,
+            #[allow(deprecated)]
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
-                data: Some(encoded_instantiate_reply.into()),
+                data: Some(encoded_instantiate_reply.clone().into()),
+                msg_responses: vec![MsgResponse {
+                    type_url: "/cosmwasm.wasm.v1.MsgInstantiateContractResponse".to_string(),
+                    value: encoded_instantiate_reply.clone().into(),
+                }],
             }),
         };
         reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
 
         let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
-            sender: String::from("minter"),
+            sender: addrs.addr("minter").to_string(),
             amount: Uint128::new(1),
             msg: [].into(),
         });
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
+        let contract = deps.api.addr_make(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
 
         // Max mint is 1, so second mint request should fail
         execute(deps.as_mut(), mock_env(), info.clone(), msg.clone()).unwrap();
@@ -564,31 +638,32 @@ mod tests {
     fn uninitialized() {
         // Config has not been fully initialized with nft contract address via instantiation reply
         let mut deps = mock_dependencies();
+        let mut addrs = MockAddrFactory::new(deps.api);
         let msg = InstantiateMsg {
-            owner: Addr::unchecked("owner"),
+            owner: addrs.addr("owner"),
             max_tokens: 1,
             unit_price: Uint128::new(1),
             name: String::from("SYNTH"),
             symbol: String::from("SYNTH"),
             collection_info_extension: None,
             token_code_id: 10u64,
-            cw20_address: Addr::unchecked(MOCK_CONTRACT_ADDR),
+            cw20_address: addrs.addr(MOCK_CONTRACT_ADDR),
             token_uri: String::from("https://ipfs.io/ipfs/Q"),
             extension: None,
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
-        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let contract = addrs.addr(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
+        instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Test token transfer when nft contract has not been linked
 
         let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
-            sender: String::from("minter"),
+            sender: addrs.addr("minter").to_string(),
             amount: Uint128::new(1),
             msg: [].into(),
         });
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
 
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
         match err {
@@ -614,7 +689,8 @@ mod tests {
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = deps.api.addr_make("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         // Link nft token contract using reply
@@ -631,9 +707,16 @@ mod tests {
 
         let reply_msg = Reply {
             id: INSTANTIATE_TOKEN_REPLY_ID,
+            payload: Binary::default(),
+            gas_used: 1000,
+            #[allow(deprecated)]
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
-                data: Some(encoded_instantiate_reply.into()),
+                data: Some(encoded_instantiate_reply.clone().into()),
+                msg_responses: vec![MsgResponse {
+                    type_url: "/cosmwasm.wasm.v1.MsgInstantiateContractResponse".to_string(),
+                    value: encoded_instantiate_reply.clone().into(),
+                }],
             }),
         };
         reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
@@ -644,7 +727,7 @@ mod tests {
             amount: Uint128::new(1),
             msg: [].into(),
         });
-        let info = mock_info("unauthorized-token", &[]);
+        let info = message_info(&deps.api.addr_make("unauthorized-token"), &[]);
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {
@@ -656,21 +739,23 @@ mod tests {
     #[test]
     fn wrong_amount() {
         let mut deps = mock_dependencies();
+        let mut addrs = MockAddrFactory::new(deps.api);
         let msg = InstantiateMsg {
-            owner: Addr::unchecked("owner"),
+            owner: addrs.addr("owner"),
             max_tokens: 1,
             unit_price: Uint128::new(1),
             name: String::from("SYNTH"),
             symbol: String::from("SYNTH"),
             collection_info_extension: None,
             token_code_id: 10u64,
-            cw20_address: Addr::unchecked(MOCK_CONTRACT_ADDR),
+            cw20_address: addrs.addr(MOCK_CONTRACT_ADDR),
             token_uri: String::from("https://ipfs.io/ipfs/Q"),
             extension: None,
             withdraw_address: None,
         };
 
-        let info = mock_info("owner", &[]);
+        let owner = addrs.addr("owner");
+        let info = message_info(&owner, &[]);
         instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         // Link nft token contract using reply
@@ -687,20 +772,28 @@ mod tests {
 
         let reply_msg = Reply {
             id: INSTANTIATE_TOKEN_REPLY_ID,
+            payload: Binary::default(),
+            gas_used: 1000,
+            #[allow(deprecated)]
             result: SubMsgResult::Ok(SubMsgResponse {
                 events: vec![],
-                data: Some(encoded_instantiate_reply.into()),
+                data: Some(encoded_instantiate_reply.clone().into()),
+                msg_responses: vec![MsgResponse {
+                    type_url: "/cosmwasm.wasm.v1.MsgInstantiateContractResponse".to_string(),
+                    value: encoded_instantiate_reply.clone().into(),
+                }],
             }),
         };
         reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
 
         // Test token transfer from invalid token contract
         let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
-            sender: String::from("minter"),
+            sender: addrs.addr("minter").to_string(),
             amount: Uint128::new(100),
             msg: [].into(),
         });
-        let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
+        let contract = addrs.addr(MOCK_CONTRACT_ADDR);
+        let info = message_info(&contract, &[]);
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
 
         match err {

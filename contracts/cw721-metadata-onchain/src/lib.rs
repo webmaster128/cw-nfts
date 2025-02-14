@@ -106,9 +106,13 @@ pub mod entry {
 mod tests {
     use super::*;
 
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cw721::{msg::NftExtensionMsg, state::Trait, NftExtension};
-    use msg::{ExecuteMsg, InstantiateMsg};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
+    use cw721::{
+        msg::{Cw721InstantiateMsg, NftExtensionMsg},
+        state::Trait,
+        NftExtension,
+    };
+    use msg::ExecuteMsg;
 
     const CREATOR: &str = "creator";
 
@@ -117,12 +121,13 @@ mod tests {
     #[test]
     fn proper_cw2_initialization() {
         let mut deps = mock_dependencies();
-
+        let sender = deps.api.addr_make("sender");
+        let info = message_info(&sender, &[]);
         entry::instantiate(
             deps.as_mut(),
             mock_env(),
-            mock_info("sender", &[]),
-            InstantiateMsg {
+            info,
+            Cw721InstantiateMsg {
                 name: "collection_name".into(),
                 symbol: "collection_symbol".into(),
                 collection_info_extension: None,
@@ -141,9 +146,9 @@ mod tests {
     fn use_metadata_extension() {
         let mut deps = mock_dependencies();
         let contract = Cw721MetadataContract::default();
-
-        let info = mock_info(CREATOR, &[]);
-        let init_msg = InstantiateMsg {
+        let creator = deps.api.addr_make(CREATOR);
+        let info = message_info(&creator, &[]);
+        let init_msg = Cw721InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
             collection_info_extension: None,
@@ -167,9 +172,10 @@ mod tests {
             }]),
             ..NftExtensionMsg::default()
         });
+        let owner = deps.api.addr_make("owner");
         let exec_msg = ExecuteMsg::Mint {
             token_id: token_id.to_string(),
-            owner: "john".to_string(),
+            owner: owner.to_string(),
             token_uri: token_uri.clone(),
             extension: extension.clone(),
         };

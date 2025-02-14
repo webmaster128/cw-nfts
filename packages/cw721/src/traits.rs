@@ -220,13 +220,13 @@ pub trait Cw721Execute<
             Cw721ExecuteMsg::Burn { token_id } => self.burn_nft(deps, env, info, token_id),
             #[allow(deprecated)]
             Cw721ExecuteMsg::UpdateOwnership(action) => {
-                self.update_minter_ownership(deps.api, deps.storage, env, info, action)
+                self.update_minter_ownership(deps, env, info, action)
             }
             Cw721ExecuteMsg::UpdateMinterOwnership(action) => {
-                self.update_minter_ownership(deps.api, deps.storage, env, info, action)
+                self.update_minter_ownership(deps, env, info, action)
             }
             Cw721ExecuteMsg::UpdateCreatorOwnership(action) => {
-                self.update_creator_ownership(deps.api, deps.storage, env, info, action)
+                self.update_creator_ownership(deps, env, info, action)
             }
             #[allow(deprecated)]
             Cw721ExecuteMsg::UpdateExtension { msg } => {
@@ -391,24 +391,22 @@ pub trait Cw721Execute<
 
     fn update_minter_ownership(
         &self,
-        api: &dyn Api,
-        storage: &mut dyn Storage,
+        deps: DepsMut,
         env: &Env,
         info: &MessageInfo,
         action: Action,
     ) -> Result<Response<TCustomResponseMsg>, Cw721ContractError> {
-        update_minter_ownership::<TCustomResponseMsg>(api, storage, env, info, action)
+        update_minter_ownership::<TCustomResponseMsg>(deps, env, info, action)
     }
 
     fn update_creator_ownership(
         &self,
-        api: &dyn Api,
-        storage: &mut dyn Storage,
+        deps: DepsMut,
         env: &Env,
         info: &MessageInfo,
         action: Action,
     ) -> Result<Response<TCustomResponseMsg>, Cw721ContractError> {
-        update_creator_ownership::<TCustomResponseMsg>(api, storage, env, info, action)
+        update_creator_ownership::<TCustomResponseMsg>(deps, env, info, action)
     }
 
     /// Custom msg execution. This is a no-op in default implementation.
@@ -737,7 +735,13 @@ pub trait Cw721Query<
         spender: String,
         include_expired_approval: bool,
     ) -> StdResult<ApprovalResponse> {
-        query_approval(deps, env, token_id, spender, include_expired_approval)
+        query_approval(
+            deps,
+            env,
+            token_id,
+            deps.api.addr_validate(&spender)?,
+            include_expired_approval,
+        )
     }
 
     /// approvals returns all approvals owner given access to

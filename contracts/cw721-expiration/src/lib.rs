@@ -81,7 +81,7 @@ pub mod entry {
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cw2::ContractVersion;
 
     use crate::{error::ContractError, msg::InstantiateMsg, state::DefaultCw721ExpirationContract};
@@ -91,19 +91,21 @@ mod tests {
     #[test]
     fn proper_cw2_initialization() {
         let mut deps = mock_dependencies();
-
+        let info = message_info(&deps.api.addr_make("mrt"), &[]);
+        let creator = deps.api.addr_make("creator");
+        let minter = deps.api.addr_make("minter");
         // assert min expiration
         let error = entry::instantiate(
             deps.as_mut(),
             mock_env(),
-            mock_info("mrt", &[]),
+            info.clone(),
             InstantiateMsg {
                 expiration_days: 0,
                 name: "collection_name".into(),
                 symbol: "collection_symbol".into(),
                 collection_info_extension: None,
-                minter: Some("minter".into()),
-                creator: Some("creator".into()),
+                minter: Some(minter.to_string()),
+                creator: Some(creator.to_string()),
                 withdraw_address: None,
             },
         )
@@ -114,14 +116,14 @@ mod tests {
         entry::instantiate(
             deps.as_mut(),
             mock_env(),
-            mock_info("mrt", &[]),
+            info,
             InstantiateMsg {
                 expiration_days: 1,
                 name: "name".into(),
                 symbol: "symbol".into(),
                 collection_info_extension: None,
-                minter: Some("minter".into()),
-                creator: Some("creator".into()),
+                minter: Some(minter.to_string()),
+                creator: Some(creator.to_string()),
                 withdraw_address: None,
             },
         )

@@ -1,7 +1,7 @@
 use cosmwasm_std::{
     Addr, BlockInfo, CustomMsg, Deps, Empty, Env, Order, StdError, StdResult, Storage,
 };
-use cw_ownable::Ownership;
+use cw_ownable::{get_ownership, Ownership};
 use cw_storage_plus::Bound;
 use cw_utils::{maybe_addr, Expiration};
 
@@ -16,8 +16,7 @@ use crate::{
         NumTokensResponse, OperatorResponse, OperatorsResponse, OwnerOfResponse, TokensResponse,
     },
     state::{
-        Approval, CollectionExtensionAttributes, CollectionInfo, Cw721Config, NftInfo, CREATOR,
-        MINTER,
+        Approval, CollectionExtensionAttributes, CollectionInfo, Cw721Config, NftInfo, MINTER,
     },
     traits::{Contains, Cw721CustomMsg, Cw721Query, Cw721State, FromAttributesState},
     DefaultOptionalCollectionExtension, DefaultOptionalNftExtension,
@@ -71,7 +70,7 @@ pub fn query_minter_ownership(storage: &dyn Storage) -> StdResult<Ownership<Addr
 }
 
 pub fn query_creator_ownership(storage: &dyn Storage) -> StdResult<Ownership<Addr>> {
-    CREATOR.get_ownership(storage)
+    get_ownership(storage)
 }
 
 pub fn query_collection_info(storage: &dyn Storage) -> StdResult<CollectionInfo> {
@@ -83,13 +82,11 @@ pub fn query_collection_extension_attributes(
     deps: Deps,
 ) -> StdResult<CollectionExtensionAttributes> {
     let config = Cw721Config::<Option<Empty>>::default();
-    cw_paginate_storage::paginate_map_values(
-        deps,
-        &config.collection_extension,
-        None,
-        None,
-        Order::Ascending,
-    )
+    config
+        .collection_extension
+        .range(deps.storage, None, None, Order::Ascending)
+        .map(|kv| Ok(kv?.1))
+        .collect()
 }
 
 pub fn query_config<TCollectionExtension>(
@@ -288,7 +285,7 @@ pub fn query_approval(
     deps: Deps,
     env: &Env,
     token_id: String,
-    spender: String,
+    spender: Addr,
     include_expired_approval: bool,
 ) -> StdResult<ApprovalResponse> {
     let token = Cw721Config::<Option<Empty>>::default()

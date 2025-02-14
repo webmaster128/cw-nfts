@@ -5,7 +5,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Binary, Coin, ContractInfoResponse, Decimal, Deps, Env, MessageInfo,
     Timestamp,
 };
-use cw_ownable::{Action, Ownership};
+use cw_ownable::{is_owner, Action, Ownership};
 use cw_utils::Expiration;
 use serde::Serialize;
 use url::Url;
@@ -15,8 +15,8 @@ use crate::execute::{assert_creator, assert_minter};
 use crate::state::{
     Attribute, CollectionExtension, CollectionExtensionAttributes, CollectionInfo, NftInfo, Trait,
     ATTRIBUTE_DESCRIPTION, ATTRIBUTE_EXPLICIT_CONTENT, ATTRIBUTE_EXTERNAL_LINK, ATTRIBUTE_IMAGE,
-    ATTRIBUTE_ROYALTY_INFO, ATTRIBUTE_START_TRADING_TIME, CREATOR,
-    MAX_COLLECTION_DESCRIPTION_LENGTH, MAX_ROYALTY_SHARE_DELTA_PCT, MAX_ROYALTY_SHARE_PCT, MINTER,
+    ATTRIBUTE_ROYALTY_INFO, ATTRIBUTE_START_TRADING_TIME, MAX_COLLECTION_DESCRIPTION_LENGTH,
+    MAX_ROYALTY_SHARE_DELTA_PCT, MAX_ROYALTY_SHARE_PCT, MINTER,
 };
 use crate::traits::{Cw721CustomMsg, Cw721State, FromAttributesState, ToAttributesState};
 use crate::NftExtension;
@@ -200,7 +200,7 @@ pub enum Cw721QueryMsg<
     /// Deprecated: use GetCollectionInfoAndExtension instead! Will be removed in next release!
     ContractInfo {},
 
-    /// Returns `ConfigResponse`
+    /// Returns `AllCollectionInfoResponse`
     #[returns(ConfigResponse<TCollectionExtension>)]
     GetConfig {},
 
@@ -256,8 +256,8 @@ pub enum Cw721QueryMsg<
         include_expired: Option<bool>,
     },
 
-    /// Returns all tokens owned by the given address.
-    /// Same as `AllTokens` but with owner filter.
+    /// With Enumerable extension.
+    /// Returns all tokens owned by the given address, [] if unset.
     #[returns(TokensResponse)]
     Tokens {
         owner: String,
@@ -464,29 +464,41 @@ impl StateFactory<CollectionExtension<RoyaltyInfo>>
         info: Option<&MessageInfo>,
         _current: Option<&CollectionExtension<RoyaltyInfo>>,
     ) -> Result<(), Cw721ContractError> {
-        let sender = info.map(|i| i.sender.clone());
+        let sender = info.map(|i| &i.sender);
         // start trading time can only be updated by minter
-        let minter_initialized = MINTER.item.may_load(deps.storage)?;
+        let is_minter_or_uninitialized = match sender
+            .map(|addr| MINTER.is_owner(deps.storage, addr))
+            .transpose()
+        {
+            // if Some(bool), bool represents the `is_owner` check result.
+            // if None, `info` was none and the check is skipped.
+            Ok(is_minter) => is_minter.unwrap_or(true),
+            // `is_owner` returns an error if the store is not initialized.
+            // the check is skipped in this case as well.
+            Err(_) => true,
+        };
         if self.start_trading_time.is_some()
-            && minter_initialized.is_some()
-            && sender.is_some()
-            && MINTER
-                .assert_owner(deps.storage, &sender.clone().unwrap())
-                .is_err()
+            && MINTER.item.exists(deps.storage)
+            && !is_minter_or_uninitialized
         {
             return Err(Cw721ContractError::NotMinter {});
         }
         // all other props collection extension can only be updated by the creator
-        let creator_initialized = CREATOR.item.may_load(deps.storage)?;
+        let is_creator_or_uninitialized =
+            match sender.map(|addr| is_owner(deps.storage, addr)).transpose() {
+                // if Some(bool), bool represents the `is_owner` check result.
+                // if None, `info` was none and the check is skipped.
+                Ok(is_minter) => is_minter.unwrap_or(true),
+                // `is_owner` returns an error if the store is not initialized.
+                // the check is skipped in this case as well.
+                Err(_) => true,
+            };
         if (self.description.is_some()
             || self.image.is_some()
             || self.external_link.is_some()
             || self.explicit_content.is_some())
             && sender.is_some()
-            && creator_initialized.is_some()
-            && CREATOR
-                .assert_owner(deps.storage, &sender.unwrap())
-                .is_err()
+            && !is_creator_or_uninitialized
         {
             return Err(Cw721ContractError::NotCreator {});
         }
@@ -697,14 +709,18 @@ where
         // collection metadata can only be updated by the creator. creator assertion is skipped for these cases:
         // - CREATOR store is empty/not initioized (like in instantiation)
         // - info is none (like in migration)
-        let creator_initialized = CREATOR.item.may_load(deps.storage)?;
-        if (self.name.is_some() || self.symbol.is_some())
-            && creator_initialized.is_some()
-            && info.is_some()
-            && CREATOR
-                .assert_owner(deps.storage, &info.unwrap().sender)
-                .is_err()
+        let is_creator_or_uninitialized = match info
+            .map(|inf| is_owner(deps.storage, &inf.sender))
+            .transpose()
         {
+            // if Some(bool), bool represents the `is_owner` check result.
+            // if None, `info` was none and the check is skipped.
+            Ok(is_minter) => is_minter.unwrap_or(true),
+            // `is_owner` returns an error if the store is not initialized.
+            // the check is skipped in this case as well.
+            Err(_) => true,
+        };
+        if (self.name.is_some() || self.symbol.is_some()) && !is_creator_or_uninitialized {
             return Err(Cw721ContractError::NotCreator {});
         }
         Ok(())

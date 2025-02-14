@@ -12,8 +12,8 @@ use cw_storage_plus::{Item, Map};
 /// - `Empty` for custom query msg for custom contract logic.
 /// - `Empty` for custom response msg for custom contract logic.
 pub struct DefaultCw721ExpirationContract<'a> {
-    pub expiration_days: Item<'a, u16>, // max 65535 days
-    pub mint_timestamps: Map<'a, &'a str, Timestamp>,
+    pub expiration_days: Item<u16>, // max 65535 days
+    pub mint_timestamps: Map<&'a str, Timestamp>,
     pub base_contract: Cw721OnchainExtensions<'a>,
 }
 

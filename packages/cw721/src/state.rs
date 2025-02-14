@@ -3,7 +3,7 @@ use cosmwasm_std::{
     from_json, to_json_binary, Addr, Binary, BlockInfo, Decimal, Deps, Empty, Env, MessageInfo,
     StdResult, Storage, Timestamp,
 };
-use cw_ownable::{OwnershipStore, OWNERSHIP};
+use cw_ownable::OwnershipStore;
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, MultiIndex};
 use cw_utils::Expiration;
 use serde::de::DeserializeOwned;
@@ -16,7 +16,6 @@ use crate::{traits::StateFactory, NftExtensionMsg};
 /// !!! Important note here: !!!
 /// - creator is stored using using cw-ownable's OWNERSHIP singleton, so it is not stored here
 /// - in release v0.18.0 it was used for minter (which is confusing), but now it is used for creator
-pub const CREATOR: OwnershipStore = OWNERSHIP;
 /// - minter is stored in the contract storage using cw_ownable::OwnershipStore (same as for OWNERSHIP but with different key)
 pub const MINTER: OwnershipStore = OwnershipStore::new("collection_minter");
 
@@ -49,14 +48,14 @@ pub struct Cw721Config<
     TNftExtension: Cw721State,
 {
     /// Note: replaces deprecated/legacy key "nft_info"!
-    pub collection_info: Item<'a, CollectionInfo>,
-    pub collection_extension: Map<'a, String, Attribute>,
-    pub num_tokens: Item<'a, u64>,
+    pub collection_info: Item<CollectionInfo>,
+    pub collection_extension: Map<String, Attribute>,
+    pub token_count: Item<u64>,
     /// Stored as (granter, operator) giving operator full control over granter's account.
     /// NOTE: granter is the owner, so operator has only control for NFTs owned by granter!
-    pub operators: Map<'a, (&'a Addr, &'a Addr), Expiration>,
-    pub nft_info: IndexedMap<'a, &'a str, NftInfo<TNftExtension>, TokenIndexes<'a, TNftExtension>>,
-    pub withdraw_address: Item<'a, String>,
+    pub operators: Map<(&'a Addr, &'a Addr), Expiration>,
+    pub nft_info: IndexedMap<&'a str, NftInfo<TNftExtension>, TokenIndexes<'a, TNftExtension>>,
+    pub withdraw_address: Item<String>,
 }
 
 impl<TNftExtension> Default for Cw721Config<'static, TNftExtension>
@@ -82,20 +81,20 @@ where
     TNftExtension: Cw721State,
 {
     fn new(
-        collection_info_key: &'a str,
-        collection_info_extension_key: &'a str,
-        num_tokens_key: &'a str,
-        operator_key: &'a str,
-        nft_info_key: &'a str,
-        nft_info_owner_key: &'a str,
-        withdraw_address_key: &'a str,
+        collection_info_key: &'static str,
+        collection_info_extension_key: &'static str,
+        token_count_key: &'static str,
+        operator_key: &'static str,
+        nft_info_key: &'static str,
+        nft_info_owner_key: &'static str,
+        withdraw_address_key: &'static str,
     ) -> Self {
         let indexes = TokenIndexes {
             owner: MultiIndex::new(token_owner_idx, nft_info_key, nft_info_owner_key),
         };
         Self {
             collection_info: Item::new(collection_info_key),
-            num_tokens: Item::new(num_tokens_key),
+            token_count: Item::new(token_count_key),
             operators: Map::new(operator_key),
             nft_info: IndexedMap::new(nft_info_key, indexes),
             withdraw_address: Item::new(withdraw_address_key),
@@ -104,18 +103,18 @@ where
     }
 
     pub fn token_count(&self, storage: &dyn Storage) -> StdResult<u64> {
-        Ok(self.num_tokens.may_load(storage)?.unwrap_or_default())
+        Ok(self.token_count.may_load(storage)?.unwrap_or_default())
     }
 
     pub fn increment_tokens(&self, storage: &mut dyn Storage) -> StdResult<u64> {
         let val = self.token_count(storage)? + 1;
-        self.num_tokens.save(storage, &val)?;
+        self.token_count.save(storage, &val)?;
         Ok(val)
     }
 
     pub fn decrement_tokens(&self, storage: &mut dyn Storage) -> StdResult<u64> {
         let val = self.token_count(storage)? - 1;
-        self.num_tokens.save(storage, &val)?;
+        self.token_count.save(storage, &val)?;
         Ok(val)
     }
 }
